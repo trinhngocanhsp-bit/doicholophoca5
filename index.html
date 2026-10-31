@@ -192,7 +192,7 @@
 <div class="app">
   <header>
     <h1>🎲 Chọn tổ ngẫu nhiên</h1>
-    <p id="subTitle">Chọn tên của bạn trong danh sách → bấm nút để nhận tổ</p>
+    <p id="subTitle">Lớp 6A1</p>
   </header>
 
   <section class="card">
@@ -218,7 +218,6 @@
       <button id="exportExcelBtn" class="btn primary">📊 Xuất file Excel (Đẹp)</button>
       <button id="exportWordBtn" class="btn ok">📥 Xuất Word (In ấn)</button>
       <button id="copyBtn" class="btn ghost">📄 Copy văn bản</button>
-      <button id="resetBtn" class="btn danger" style="display:none;">🗑️ Chia lại từ đầu</button>
     </div>
   </section>
 </div>
@@ -229,6 +228,12 @@
     <div class="modal-head">
       <h2>⚙️ Cài đặt (Giáo viên)</h2>
       <button id="closeAdmin" class="btn ghost">Đóng</button>
+    </div>
+
+    <!-- NÚT RESET ĐƯỢC ĐƯA LÊN ĐÂY CHO DỄ THẤY -->
+    <div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:10px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="color:#991b1b; font-weight:600; font-size:0.9rem;">Xóa kết quả cũ để học sinh chọn lại từ đầu?</div>
+      <button id="resetBtn" class="btn danger" style="background:#ef4444; color:#fff; border:none;">🗑️ Xóa kết quả & Chia lại</button>
     </div>
 
     <div class="modal-body">
@@ -311,9 +316,9 @@
 let currentPass = localStorage.getItem('chiaTo_pass') || '1234';
 
 /* ============ STATE ============ */
-const LS = 'chiaTo_v12'; // Đã đổi version để nạp danh sách mới
+const LS = 'chiaTo_v13'; // Tăng version để reset bộ nhớ đệm
 let state = {
-  className: 'Lớp 6A1', // Bạn có thể sửa lại tên lớp
+  className: 'Lớp 6A1',
   completionDate: '',
   students: [
     'Chúc Thị Phương Anh', 'Dương Nguyễn Phương Anh', 'Nguyễn Huyền Anh', 'Triệu Gia Bảo',
@@ -371,7 +376,6 @@ function save(){
    ============================================================ */
 function openAdmin(){
   isAdmin = true;
-  $('resetBtn').style.display = 'inline-block'; 
   renderBoard(); 
   
   $('studentsInput').value = state.students.join('\n');
@@ -390,7 +394,6 @@ function openAdmin(){
 
 function closeAdmin(){ 
   isAdmin = false;
-  $('resetBtn').style.display = 'none'; 
   renderBoard(); 
   $('adminModal').hidden = true; 
 }
@@ -407,6 +410,24 @@ $('closeAdmin').addEventListener('click', closeAdmin);
 $('cancelAdminBtn').addEventListener('click', closeAdmin);
 $('adminModal').addEventListener('click', e=>{
   if(e.target === $('adminModal')) closeAdmin();
+});
+
+/* ============ XỬ LÝ NÚT RESET ============ */
+$('resetBtn').addEventListener('click', ()=>{
+  if(!isAdmin) return;
+  if(!state.assigned.length) return alert('Chưa có ai chọn tổ, không cần xóa!');
+  if(!confirm('Bạn có chắc chắn muốn xóa toàn bộ kết quả chia tổ để học sinh chọn lại từ đầu? (Danh sách học sinh và tổ trưởng vẫn giữ nguyên)')) return;
+  
+  state.assigned = [];
+  save();
+  
+  // Reset giao diện bảng kết quả
+  $('result').className = 'result';
+  $('result').innerHTML = '<div class="placeholder">Chọn tên và bấm nút để nhận tổ…</div>';
+  
+  renderAll();
+  renderStatusList();
+  alert('Đã xóa toàn bộ kết quả! Học sinh có thể bắt đầu chọn lại.');
 });
 
 /* ============ LƯU CÀI ĐẶT ============ */
@@ -798,35 +819,6 @@ function finish(name, gi){
   renderAll();
   if(isAdmin) renderStatusList();
 }
-
-/* ============ NÚT KHÁC ============ */
-$('resetBtn').addEventListener('click', ()=>{
-  if(!isAdmin) return;
-  if(!state.assigned.length) return;
-  if(!confirm('Xoá toàn bộ kết quả chia tổ? (Danh sách học sinh và cấu hình tổ vẫn giữ nguyên)')) return;
-  state.assigned = [];
-  save();
-  $('result').className = 'result';
-  $('result').innerHTML = '<div class="placeholder">Chọn tên và bấm nút để nhận tổ…</div>';
-  renderAll();
-  renderStatusList();
-});
-
-$('copyBtn').addEventListener('click', ()=>{
-  if(!state.assigned.length) return alert('Chưa có kết quả để sao chép.');
-  const lines = state.groups.map((g,gi)=>{
-    const members = state.assigned.filter(a => a.gi === gi);
-    return `${g.name} (${members.length}/${g.cap}): ` + 
-           members.map(m => {
-             const isLeader = (m.name === g.leader);
-             return m.name + (isLeader ? ' (Tổ trưởng)' : '') + (m.auto ? ' (Auto)' : '');
-           }).join(', ');
-  });
-  const text = lines.join('\n');
-  navigator.clipboard.writeText(text)
-    .then(()=>alert('Đã sao chép kết quả vào clipboard!'))
-    .catch(()=>prompt('Sao chép thủ công:', text));
-});
 
 /* ============ XUẤT FILE EXCEL ============ */
 $('exportExcelBtn').addEventListener('click', ()=>{
